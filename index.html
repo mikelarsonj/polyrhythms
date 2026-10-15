@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Polyrhythm Visualizer</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --cyan: #06b6d4;
+      --amber: #f59e0b;
+      --hit-line: #f43f5e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px 12px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .controls-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      justify-content: center;
+      max-width: 540px;
+      width: 100%;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    select {
+      background: #0f172a;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+    }
+
+    select.lane1-select { border-color: var(--cyan); color: var(--cyan); }
+    select.lane2-select { border-color: var(--amber); color: var(--amber); }
+
+    .ratio-separator {
+      font-weight: 700;
+      font-size: 1.2rem;
+      color: var(--muted);
+    }
+
+    .btn {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      padding: 9px 20px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.05s ease;
+    }
+
+    .btn:hover { background: #1d4ed8; }
+    .btn:active { transform: scale(0.97); }
+    .btn.active { background: #dc2626; }
+
+    .canvas-container {
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 480px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Polyrhythm Metronome</h1>
+    <p class="subtitle">Visual falling-bar polyrhythmic counter</p>
+  </header>
+
+  <div class="controls-panel">
+    <div class="input-group">
+      <label>Ratio:</label>
+      <select id="rhythm1" class="lane1-select">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3" selected>3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+      </select>
+      <span class="ratio-separator">:</span>
+      <select id="rhythm2" class="lane2-select">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4" selected>4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label for="duration">Cycle Duration:</label>
+      <select id="duration">
+        <option value="1.0">1.0 s</option>
+        <option value="1.5">1.5 s</option>
+        <option value="2.0" selected>2.0 s</option>
+        <option value="2.5">2.5 s</option>
+        <option value="3.0">3.0 s</option>
+        <option value="4.0">4.0 s</option>
+      </select>
+    </div>
+
+    <button id="toggleBtn" class="btn">Start</button>
+  </div>
+
+  <div class="canvas-container">
+    <canvas id="polyCanvas" width="480" height="480"></canvas>
+  </div>
+
+  <script>
+    // --- Audio Synthesis Setup ---
+    let audioCtx = null;
+
+    function playTone(freq, duration = 0.08) {
+      if (!audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // --- State & Canvas Setup ---
+    const canvas = document.getElementById('polyCanvas');
+    const ctx = canvas.getContext('2d');
+    const toggleBtn = document.getElementById('toggleBtn');
+    const r1Select = document.getElementById('rhythm1');
+    const r2Select = document.getElementById('rhythm2');
+    const durSelect = document.getElementById('duration');
+
+    let isRunning = false;
+    let r1 = parseInt(r1Select.value, 10);
+    let r2 = parseInt(r2Select.value, 10);
+    let cycleDuration = parseFloat(durSelect.value); // seconds
+
+    let cycleProgress = 0; // 0.0 to 1.0
+    let lastTime = null;
+    let playedHits1 = new Set();
+    let playedHits2 = new Set();
+
+    const HIT
+
