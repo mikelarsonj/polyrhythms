@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Polyrhythm Visualizer</title>
+  <title>Polyrhythm Metronome</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -103,9 +103,9 @@
       background: #2563eb;
       color: #fff;
       border: none;
-      padding: 9px 20px;
+      padding: 10px 24px;
       border-radius: 8px;
-      font-size: 0.95rem;
+      font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.15s ease, transform 0.05s ease;
@@ -186,8 +186,16 @@
   </div>
 
   <script>
-    // --- Audio Synthesis Setup ---
     let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
 
     function playTone(freq, duration = 0.08) {
       if (!audioCtx) return;
@@ -197,7 +205,7 @@
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
 
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
 
         osc.connect(gain);
@@ -210,7 +218,6 @@
       }
     }
 
-    // --- State & Canvas Setup ---
     const canvas = document.getElementById('polyCanvas');
     const ctx = canvas.getContext('2d');
     const toggleBtn = document.getElementById('toggleBtn');
@@ -221,12 +228,150 @@
     let isRunning = false;
     let r1 = parseInt(r1Select.value, 10);
     let r2 = parseInt(r2Select.value, 10);
-    let cycleDuration = parseFloat(durSelect.value); // seconds
+    let cycleDuration = parseFloat(durSelect.value);
 
-    let cycleProgress = 0; // 0.0 to 1.0
+    let cycleProgress = 0;
     let lastTime = null;
     let playedHits1 = new Set();
     let playedHits2 = new Set();
 
-    const HIT
+    const HIT_LINE_Y = 380;
+    const BAR_HEIGHT = 10;
 
+    function resetTriggerStates() {
+      playedHits1.clear();
+      playedHits2.clear();
+    }
+
+    r1Select.addEventListener('change', () => {
+      r1 = parseInt(r1Select.value, 10);
+      resetTriggerStates();
+      if (!isRunning) drawStatic();
+    });
+
+    r2Select.addEventListener('change', () => {
+      r2 = parseInt(r2Select.value, 10);
+      resetTriggerStates();
+      if (!isRunning) drawStatic();
+    });
+
+    durSelect.addEventListener('change', () => {
+      cycleDuration = parseFloat(durSelect.value);
+    });
+
+    toggleBtn.addEventListener('click', () => {
+      initAudio();
+
+      isRunning = !isRunning;
+      if (isRunning) {
+        toggleBtn.textContent = 'Stop';
+        toggleBtn.classList.add('active');
+        lastTime = performance.now();
+        requestAnimationFrame(loop);
+      } else {
+        toggleBtn.textContent = 'Start';
+        toggleBtn.classList.remove('active');
+        drawStatic();
+      }
+    });
+
+    function loop(now) {
+      if (!isRunning) return;
+
+      const delta = (now - lastTime) / 1000;
+      lastTime = now;
+
+      const prevProgress = cycleProgress;
+      cycleProgress = (cycleProgress + delta / cycleDuration) % 1.0;
+
+      if (cycleProgress < prevProgress) {
+        resetTriggerStates();
+      }
+
+      for (let i = 0; i < r1; i++) {
+        const triggerPoint = i / r1;
+        if (cycleProgress >= triggerPoint && !playedHits1.has(i)) {
+          playTone(440);
+          playedHits1.add(i);
+        }
+      }
+
+      for (let j = 0; j < r2; j++) {
+        const triggerPoint = j / r2;
+        if (cycleProgress >= triggerPoint && !playedHits2.has(j)) {
+          playTone(660);
+          playedHits2.add(j);
+        }
+      }
+
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const midX = canvas.width / 2;
+      const laneWidth = 140;
+
+      // Center divider
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(midX, 0);
+      ctx.lineTo(midX, canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Strike / Hit Line
+      ctx.strokeStyle = 'rgba(244, 63, 94, 0.8)';
+      ctx.fillStyle = 'rgba(244, 63, 94, 0.15)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(40, HIT_LINE_Y - 8, canvas.width - 80, 16, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      // Lane 1 Bars (Cyan)
+      for (let i = 0; i < r1; i++) {
+        const beatOffset = i / r1;
+        let pos = (cycleProgress - beatOffset) % 1.0;
+        if (pos < 0) pos += 1.0;
+
+        const y = pos * HIT_LINE_Y;
+        const x = midX - laneWidth - 10;
+
+        ctx.fillStyle = '#06b6d4';
+        ctx.beginPath();
+        ctx.roundRect(x, y - (BAR_HEIGHT / 2), laneWidth, BAR_HEIGHT, 4);
+        ctx.fill();
+      }
+
+      // Lane 2 Bars (Amber)
+      for (let j = 0; j < r2; j++) {
+        const beatOffset = j / r2;
+        let pos = (cycleProgress - beatOffset) % 1.0;
+        if (pos < 0) pos += 1.0;
+
+        const y = pos * HIT_LINE_Y;
+        const x = midX + 10;
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.roundRect(x, y - (BAR_HEIGHT / 2), laneWidth, BAR_HEIGHT, 4);
+        ctx.fill();
+      }
+    }
+
+    function drawStatic() {
+      cycleProgress = 0;
+      resetTriggerStates();
+      render();
+    }
+
+    window.addEventListener('load', drawStatic);
+    drawStatic();
+  </script>
+</body>
+</html>
