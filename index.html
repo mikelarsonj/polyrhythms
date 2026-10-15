@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>Polyrhythm Metronome</title>
   <style>
     :root {
@@ -59,7 +60,7 @@
       gap: 16px;
       align-items: center;
       justify-content: center;
-      max-width: 540px;
+      max-width: 560px;
       width: 100%;
       margin-bottom: 20px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -133,7 +134,7 @@
 
   <header>
     <h1>Polyrhythm Metronome</h1>
-    <p class="subtitle">Visual falling-bar polyrhythmic counter</p>
+    <p class="subtitle">Visual falling-bar polyrhythmic counter (v2.0 - 10s)</p>
   </header>
 
   <div class="controls-panel">
@@ -286,96 +287,8 @@
       ctx.fillStyle = '#f43f5e';
       ctx.fillRect(20, HIT_LINE_Y - 1, canvas.width - 40, 2);
 
-      // Lane 1 Bars (Cyan)
-      ctx.fillStyle = '#06b6d4';
-      for (let i = 0; i < r1; i++) {
-        let pos = (cycleProgress - (i / r1)) % 1.0;
-        if (pos < 0) pos += 1.0;
-        const y = pos * HIT_LINE_Y;
-        ctx.fillRect(midX - laneWidth - 15, y - (BAR_HEIGHT / 2), laneWidth, BAR_HEIGHT);
-      }
-
-      // Lane 2 Bars (Amber)
-      ctx.fillStyle = '#f59e0b';
-      for (let j = 0; j < r2; j++) {
-        let pos = (cycleProgress - (j / r2)) % 1.0;
-        if (pos < 0) pos += 1.0;
-        const y = pos * HIT_LINE_Y;
-        ctx.fillRect(midX + 15, y - (BAR_HEIGHT / 2), laneWidth, BAR_HEIGHT);
-      }
-    }
-
-    function loop(now) {
-      if (!isRunning) return;
-
-      const delta = (now - lastTime) / 1000;
-      lastTime = now;
-
-      const prev = cycleProgress;
-      cycleProgress = (cycleProgress + (delta / cycleDuration)) % 1.0;
-
-      if (cycleProgress < prev) {
-        resetTriggerStates();
-      }
-
-      for (let i = 0; i < r1; i++) {
-        if (cycleProgress >= (i / r1) && !playedHits1.has(i)) {
-          playTone(440);
-          playedHits1.add(i);
-        }
-      }
-
-      for (let j = 0; j < r2; j++) {
-        if (cycleProgress >= (j / r2) && !playedHits2.has(j)) {
-          playTone(660);
-          playedHits2.add(j);
-        }
-      }
-
-      draw();
-      requestAnimationFrame(loop);
-    }
-
-    function start() {
-      initAudio();
-      isRunning = true;
-      toggleBtn.textContent = 'Stop';
-      toggleBtn.classList.add('active');
-      lastTime = performance.now();
-      requestAnimationFrame(loop);
-    }
-
-    function stop() {
-      isRunning = false;
-      toggleBtn.textContent = 'Start';
-      toggleBtn.classList.remove('active');
-      cycleProgress = 0;
-      resetTriggerStates();
-      draw();
-    }
-
-    toggleBtn.addEventListener('click', () => {
-      if (isRunning) stop();
-      else start();
-    });
-
-    r1Select.addEventListener('change', () => {
-      r1 = parseInt(r1Select.value, 10);
-      resetTriggerStates();
-      if (!isRunning) draw();
-    });
-
-    r2Select.addEventListener('change', () => {
-      r2 = parseInt(r2Select.value, 10);
-      resetTriggerStates();
-      if (!isRunning) draw();
-    });
-
-    durSelect.addEventListener('change', () => {
-      cycleDuration = parseFloat(durSelect.value);
-    });
-
-    // Initial draw on mount
+      // Lane
+w on mount
     draw();
   </script>
 </body>
