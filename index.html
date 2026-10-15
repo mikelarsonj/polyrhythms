@@ -13,7 +13,6 @@
       --muted: #94a3b8;
       --cyan: #06b6d4;
       --amber: #f59e0b;
-      --hit-line: #f43f5e;
     }
 
     * {
@@ -108,22 +107,19 @@
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s ease, transform 0.05s ease;
     }
 
-    .btn:hover { background: #1d4ed8; }
     .btn:active { transform: scale(0.97); }
     .btn.active { background: #dc2626; }
 
     .canvas-container {
       position: relative;
-      background: var(--card-bg);
+      background: #111827;
       border: 1px solid var(--border);
       border-radius: 12px;
       overflow: hidden;
       width: 100%;
       max-width: 480px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
 
     canvas {
@@ -167,14 +163,13 @@
     </div>
 
     <div class="input-group">
-      <label for="duration">Cycle Duration:</label>
+      <label for="duration">Duration:</label>
       <select id="duration">
         <option value="1.0">1.0 s</option>
         <option value="1.5">1.5 s</option>
         <option value="2.0" selected>2.0 s</option>
         <option value="2.5">2.5 s</option>
         <option value="3.0">3.0 s</option>
-        <option value="4.0">4.0 s</option>
       </select>
     </div>
 
@@ -197,7 +192,7 @@
       }
     }
 
-    function playTone(freq, duration = 0.08) {
+    function playTone(freq) {
       if (!audioCtx) return;
       try {
         const osc = audioCtx.createOscillator();
@@ -205,16 +200,16 @@
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
 
-        gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.08);
 
         osc.connect(gain);
         gain.connect(audioCtx.destination);
 
         osc.start();
-        osc.stop(audioCtx.currentTime + duration);
-      } catch (e) {
-        console.error(e);
+        osc.stop(audioCtx.currentTime + 0.08);
+      } catch (err) {
+        console.error(err);
       }
     }
 
@@ -236,44 +231,48 @@
     let playedHits2 = new Set();
 
     const HIT_LINE_Y = 380;
-    const BAR_HEIGHT = 10;
+    const BAR_HEIGHT = 12;
 
     function resetTriggerStates() {
       playedHits1.clear();
       playedHits2.clear();
     }
 
-    r1Select.addEventListener('change', () => {
-      r1 = parseInt(r1Select.value, 10);
-      resetTriggerStates();
-      if (!isRunning) drawStatic();
-    });
+    function draw() {
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    r2Select.addEventListener('change', () => {
-      r2 = parseInt(r2Select.value, 10);
-      resetTriggerStates();
-      if (!isRunning) drawStatic();
-    });
+      const midX = canvas.width / 2;
+      const laneWidth = 140;
 
-    durSelect.addEventListener('change', () => {
-      cycleDuration = parseFloat(durSelect.value);
-    });
+      // Divider
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(midX - 1, 0, 2, canvas.height);
 
-    toggleBtn.addEventListener('click', () => {
-      initAudio();
+      // Strike / Hit Line
+      ctx.fillStyle = 'rgba(244, 63, 94, 0.25)';
+      ctx.fillRect(20, HIT_LINE_Y - 8, canvas.width - 40, 16);
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillRect(20, HIT_LINE_Y - 1, canvas.width - 40, 2);
 
-      isRunning = !isRunning;
-      if (isRunning) {
-        toggleBtn.textContent = 'Stop';
-        toggleBtn.classList.add('active');
-        lastTime = performance.now();
-        requestAnimationFrame(loop);
-      } else {
-        toggleBtn.textContent = 'Start';
-        toggleBtn.classList.remove('active');
-        drawStatic();
+      // Lane 1 Bars (Cyan)
+      ctx.fillStyle = '#06b6d4';
+      for (let i = 0; i < r1; i++) {
+        let pos = (cycleProgress - (i / r1)) % 1.0;
+        if (pos < 0) pos += 1.0;
+        const y = pos * HIT_LINE_Y;
+        ctx.fillRect(midX - laneWidth - 15, y - (BAR_HEIGHT / 2), laneWidth, BAR_HEIGHT);
       }
-    });
+
+      // Lane 2 Bars (Amber)
+      ctx.fillStyle = '#f59e0b';
+      for (let j = 0; j < r2; j++) {
+        let pos = (cycleProgress - (j / r2)) % 1.0;
+        if (pos < 0) pos += 1.0;
+        const y = pos * HIT_LINE_Y;
+        ctx.fillRect(midX + 15, y - (BAR_HEIGHT / 2), laneWidth, BAR_HEIGHT);
+      }
+    }
 
     function loop(now) {
       if (!isRunning) return;
@@ -281,97 +280,72 @@
       const delta = (now - lastTime) / 1000;
       lastTime = now;
 
-      const prevProgress = cycleProgress;
-      cycleProgress = (cycleProgress + delta / cycleDuration) % 1.0;
+      const prev = cycleProgress;
+      cycleProgress = (cycleProgress + (delta / cycleDuration)) % 1.0;
 
-      if (cycleProgress < prevProgress) {
+      if (cycleProgress < prev) {
         resetTriggerStates();
       }
 
       for (let i = 0; i < r1; i++) {
-        const triggerPoint = i / r1;
-        if (cycleProgress >= triggerPoint && !playedHits1.has(i)) {
+        if (cycleProgress >= (i / r1) && !playedHits1.has(i)) {
           playTone(440);
           playedHits1.add(i);
         }
       }
 
       for (let j = 0; j < r2; j++) {
-        const triggerPoint = j / r2;
-        if (cycleProgress >= triggerPoint && !playedHits2.has(j)) {
+        if (cycleProgress >= (j / r2) && !playedHits2.has(j)) {
           playTone(660);
           playedHits2.add(j);
         }
       }
 
-      render();
+      draw();
       requestAnimationFrame(loop);
     }
 
-    function render() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const midX = canvas.width / 2;
-      const laneWidth = 140;
-
-      // Center divider
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(midX, 0);
-      ctx.lineTo(midX, canvas.height);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Strike / Hit Line
-      ctx.strokeStyle = 'rgba(244, 63, 94, 0.8)';
-      ctx.fillStyle = 'rgba(244, 63, 94, 0.15)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(40, HIT_LINE_Y - 8, canvas.width - 80, 16, 8);
-      ctx.fill();
-      ctx.stroke();
-
-      // Lane 1 Bars (Cyan)
-      for (let i = 0; i < r1; i++) {
-        const beatOffset = i / r1;
-        let pos = (cycleProgress - beatOffset) % 1.0;
-        if (pos < 0) pos += 1.0;
-
-        const y = pos * HIT_LINE_Y;
-        const x = midX - laneWidth - 10;
-
-        ctx.fillStyle = '#06b6d4';
-        ctx.beginPath();
-        ctx.roundRect(x, y - (BAR_HEIGHT / 2), laneWidth, BAR_HEIGHT, 4);
-        ctx.fill();
-      }
-
-      // Lane 2 Bars (Amber)
-      for (let j = 0; j < r2; j++) {
-        const beatOffset = j / r2;
-        let pos = (cycleProgress - beatOffset) % 1.0;
-        if (pos < 0) pos += 1.0;
-
-        const y = pos * HIT_LINE_Y;
-        const x = midX + 10;
-
-        ctx.fillStyle = '#f59e0b';
-        ctx.beginPath();
-        ctx.roundRect(x, y - (BAR_HEIGHT / 2), laneWidth, BAR_HEIGHT, 4);
-        ctx.fill();
-      }
+    function start() {
+      initAudio();
+      isRunning = true;
+      toggleBtn.textContent = 'Stop';
+      toggleBtn.classList.add('active');
+      lastTime = performance.now();
+      requestAnimationFrame(loop);
     }
 
-    function drawStatic() {
+    function stop() {
+      isRunning = false;
+      toggleBtn.textContent = 'Start';
+      toggleBtn.classList.remove('active');
       cycleProgress = 0;
       resetTriggerStates();
-      render();
+      draw();
     }
 
-    window.addEventListener('load', drawStatic);
-    drawStatic();
+    toggleBtn.addEventListener('click', () => {
+      if (isRunning) stop();
+      else start();
+    });
+
+    r1Select.addEventListener('change', () => {
+      r1 = parseInt(r1Select.value, 10);
+      resetTriggerStates();
+      if (!isRunning) draw();
+    });
+
+    r2Select.addEventListener('change', () => {
+      r2 = parseInt(r2Select.value, 10);
+      resetTriggerStates();
+      if (!isRunning) draw();
+    });
+
+    durSelect.addEventListener('change', () => {
+      cycleDuration = parseFloat(durSelect.value);
+    });
+
+    // Initial draw
+    draw();
   </script>
 </body>
 </html>
