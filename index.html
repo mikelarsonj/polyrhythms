@@ -5,37 +5,51 @@
 <title>Polyrhythm Drummer</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:sans-serif;user-select:none;touch-action:manipulation}
-body{background:#0b1120;color:#fff;display:flex;flex-direction:column;align-items:center;padding:12px 8px}
-h1{font-size:1.3rem;margin-bottom:8px}
-.bar{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px;display:flex;gap:8px;align-items:center;margin-bottom:8px}
-select,button{background:#0f172a;color:#fff;border:1px solid #475569;padding:6px;border-radius:6px;font-weight:700;font-size:1rem}
+body{background:#0b1120;color:#fff;display:flex;flex-direction:column;align-items:center;padding:16px 12px;min-height:100vh}
+h1{font-size:1.8rem;margin-bottom:14px;font-weight:800;letter-spacing:-0.5px}
+.bar{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:12px 16px;display:flex;gap:12px;align-items:center;justify-content:center;margin-bottom:12px;width:100%;max-width:380px}
+.group{display:flex;align-items:center;gap:6px}
+label{font-size:1.05rem;color:#94a3b8;font-weight:700}
+select,button{background:#0f172a;color:#fff;border:1px solid #475569;padding:8px 12px;border-radius:8px;font-weight:700;font-size:1.2rem;outline:none}
 #r1{color:#06b6d4;border-color:#06b6d4}
 #r2{color:#f59e0b;border-color:#f59e0b}
-#btn{background:#2563eb;border:none;padding:6px 14px}
+#btn{background:#2563eb;border:none;padding:8px 20px;font-size:1.15rem;cursor:pointer}
 #btn.on{background:#ef4444}
-#hud{font-size:.85rem;color:#94a3b8;margin-bottom:6px;display:flex;gap:12px}
+#hud{font-size:1.05rem;color:#94a3b8;margin-bottom:10px;display:flex;gap:16px;font-weight:600}
 #hud b{color:#38bdf8}
-canvas{background:#020617;border:2px solid #334155;border-bottom:none;border-radius:8px 8px 0 0;display:block}
-.pads{display:flex;width:320px;height:120px;border:2px solid #334155;border-radius:0 0 8px 8px;overflow:hidden}
-.pad{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#090d16;touch-action:none;font-weight:800;font-size:1rem}
+canvas{background:#020617;border:2px solid #334155;border-bottom:none;border-radius:12px 12px 0 0;display:block;width:100%;max-width:380px;height:240px}
+.pads{display:flex;width:100%;max-width:380px;height:140px;border:2px solid #334155;border-radius:0 0 12px 12px;overflow:hidden}
+.pad{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#090d16;touch-action:none;font-weight:800;font-size:1.25rem;position:relative;cursor:pointer}
 #p1{border-right:1px solid #334155;color:#06b6d4}
 #p2{border-left:1px solid #334155;color:#f59e0b}
+.pad-sub{font-size:0.85rem;color:#94a3b8;margin-top:4px;font-weight:600;letter-spacing:0.5px}
 .hit-ok{background:#15803d !important}
 .hit-bad{background:#b91c1c !important}
 </style>
 </head>
 <body>
-<h1>Polyrhythm Drummer (v10)</h1>
+<h1>Polyrhythm Drummer</h1>
 <div class="bar">
-  <select id="r1"></select>:<select id="r2"></select>
-  <select id="dur"></select>
+  <div class="group">
+    <label>Ratio:</label>
+    <select id="r1"></select>:<select id="r2"></select>
+  </div>
+  <div class="group">
+    <select id="dur"></select>
+  </div>
   <button id="btn">Start</button>
 </div>
 <div id="hud">Streak: <b id="stk">0</b> | Score: <b id="sc">0/0</b></div>
-<canvas id="cv" width="320" height="220"></canvas>
+<canvas id="cv" width="380" height="240"></canvas>
 <div class="pads">
-  <div id="p1" class="pad">LEFT<br><small style="color:#64748b;font-size:.7rem">Cyan</small></div>
-  <div id="p2" class="pad">RIGHT<br><small style="color:#64748b;font-size:.7rem">Amber</small></div>
+  <div id="p1" class="pad">
+    <span>DRUM LEFT</span>
+    <span class="pad-sub">[ TAP HERE ]</span>
+  </div>
+  <div id="p2" class="pad">
+    <span>DRUM RIGHT</span>
+    <span class="pad-sub">[ TAP HERE ]</span>
+  </div>
 </div>
 <script>
 var ac=null, r1=3, r2=4, dur=2, run=false, prog=0, tLast=null;
@@ -95,19 +109,19 @@ p1.addEventListener('pointerdown', function(e){ e.preventDefault(); tap(1); });
 p2.addEventListener('pointerdown', function(e){ e.preventDefault(); tap(2); });
 
 function draw(){
-  ctx.fillStyle='#020617'; ctx.fillRect(0,0,320,220);
-  ctx.fillStyle='#334155'; ctx.fillRect(159,0,2,220);
-  ctx.fillStyle='rgba(239,68,68,0.25)'; ctx.fillRect(10,185,300,14);
-  ctx.fillStyle='#ef4444'; ctx.fillRect(10,191,300,2);
+  ctx.fillStyle='#020617'; ctx.fillRect(0,0,380,240);
+  ctx.fillStyle='#334155'; ctx.fillRect(189,0,2,240);
+  ctx.fillStyle='rgba(239,68,68,0.25)'; ctx.fillRect(10,200,360,16);
+  ctx.fillStyle='#ef4444'; ctx.fillRect(10,207,360,2);
   ctx.fillStyle='#06b6d4';
   for(var i=0;i<r1;i++){
-    var y=((prog - i/r1)%1+1)%1 * 192;
-    ctx.fillRect(20, y-5, 125, 10);
+    var y=((prog - i/r1)%1+1)%1 * 207;
+    ctx.fillRect(25, y-6, 150, 12);
   }
   ctx.fillStyle='#f59e0b';
   for(var j=0;j<r2;j++){
-    var y2=((prog - j/r2)%1+1)%1 * 192;
-    ctx.fillRect(175, y2-5, 125, 10);
+    var y2=((prog - j/r2)%1+1)%1 * 207;
+    ctx.fillRect(205, y2-6, 150, 12);
   }
 }
 
@@ -139,3 +153,4 @@ draw();
 </script>
 </body>
 </html>
+
