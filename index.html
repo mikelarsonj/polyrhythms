@@ -146,7 +146,7 @@
 
   <header>
     <h1>Polyrhythm Metronome</h1>
-    <p class="subtitle">Falling-bar visualizer (v3.0)</p>
+    <p class="subtitle">Falling-bar visualizer (v4.0)</p>
   </header>
 
   <div class="controls-panel">
@@ -229,12 +229,12 @@
   </div>
 
   <script>
-    let audioCtx = null;
+    var audioCtx = null;
 
     function playTone(freq) {
       try {
         if (!audioCtx) {
-          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          var AudioContextClass = window.AudioContext || window.webkitAudioContext;
           if (AudioContextClass) audioCtx = new AudioContextClass();
         }
         if (audioCtx && audioCtx.state === 'suspended') {
@@ -242,8 +242,8 @@
         }
         if (!audioCtx) return;
 
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
 
@@ -256,29 +256,29 @@
         osc.start();
         osc.stop(audioCtx.currentTime + 0.08);
       } catch (err) {
-        console.warn("Audio error:", err);
+        console.warn('Audio play error:', err);
       }
     }
 
-    const canvas = document.getElementById('polyCanvas');
-    const ctx = canvas.getContext('2d');
-    const toggleBtn = document.getElementById('toggleBtn');
-    const r1Select = document.getElementById('rhythm1');
-    const r2Select = document.getElementById('rhythm2');
-    const durSelect = document.getElementById('duration');
+    var canvas = document.getElementById('polyCanvas');
+    var ctx = canvas.getContext('2d');
+    var toggleBtn = document.getElementById('toggleBtn');
+    var r1Select = document.getElementById('rhythm1');
+    var r2Select = document.getElementById('rhythm2');
+    var durSelect = document.getElementById('duration');
 
-    let isRunning = false;
-    let r1 = 3;
-    let r2 = 4;
-    let cycleDuration = 2.0;
+    var isRunning = false;
+    var r1 = 3;
+    var r2 = 4;
+    var cycleDuration = 2.0;
 
-    let cycleProgress = 0;
-    let lastTime = null;
-    let playedHits1 = new Set();
-    let playedHits2 = new Set();
+    var cycleProgress = 0;
+    var lastTime = null;
+    var playedHits1 = new Set();
+    var playedHits2 = new Set();
 
-    const HIT_LINE_Y = 320;
-    const BAR_HEIGHT = 10;
+    var HIT_LINE_Y = 320;
+    var BAR_HEIGHT = 10;
 
     function resetTriggerStates() {
       playedHits1.clear();
@@ -286,12 +286,12 @@
     }
 
     function draw() {
-      const w = canvas.width;
-      const h = canvas.height;
-      const midX = w / 2;
-      const laneWidth = (w / 2) - 30;
+      var w = canvas.width;
+      var h = canvas.height;
+      var midX = w / 2;
+      var laneWidth = (w / 2) - 30;
 
-      // Clear / Background
+      // Dark background
       ctx.fillStyle = '#020617';
       ctx.fillRect(0, 0, w, h);
 
@@ -299,52 +299,52 @@
       ctx.fillStyle = '#334155';
       ctx.fillRect(midX - 1, 0, 2, h);
 
-      // Strike / Hit Target
-      ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+      // Strike Target
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
       ctx.fillRect(10, HIT_LINE_Y - 8, w - 20, 16);
       ctx.fillStyle = '#ef4444';
       ctx.fillRect(10, HIT_LINE_Y - 1, w - 20, 2);
 
       // Lane 1 Bars (Cyan)
       ctx.fillStyle = '#06b6d4';
-      for (let i = 0; i < r1; i++) {
-        let pos = (cycleProgress - (i / r1)) % 1.0;
-        if (pos < 0) pos += 1.0;
-        const y = pos * HIT_LINE_Y;
-        ctx.fillRect(midX - laneWidth - 8, y - (BAR_HEIGHT / 2), laneWidth, BAR_HEIGHT);
+      for (var i = 0; i < r1; i++) {
+        var pos1 = (cycleProgress - (i / r1)) % 1.0;
+        if (pos1 < 0) pos1 += 1.0;
+        var y1 = pos1 * HIT_LINE_Y;
+        ctx.fillRect(midX - laneWidth - 8, y1 - (BAR_HEIGHT / 2), laneWidth, BAR_HEIGHT);
       }
 
       // Lane 2 Bars (Amber)
       ctx.fillStyle = '#f59e0b';
-      for (let j = 0; j < r2; j++) {
-        let pos = (cycleProgress - (j / r2)) % 1.0;
-        if (pos < 0) pos += 1.0;
-        const y = pos * HIT_LINE_Y;
-        ctx.fillRect(midX + 8, y - (BAR_HEIGHT / 2), laneWidth, BAR_HEIGHT);
+      for (var j = 0; j < r2; j++) {
+        var pos2 = (cycleProgress - (j / r2)) % 1.0;
+        if (pos2 < 0) pos2 += 1.0;
+        var y2 = pos2 * HIT_LINE_Y;
+        ctx.fillRect(midX + 8, y2 - (BAR_HEIGHT / 2), laneWidth, BAR_HEIGHT);
       }
     }
 
     function loop(now) {
       if (!isRunning) return;
 
-      const delta = (now - lastTime) / 1000;
+      var delta = (now - lastTime) / 1000;
       lastTime = now;
 
-      const prev = cycleProgress;
+      var prev = cycleProgress;
       cycleProgress = (cycleProgress + (delta / cycleDuration)) % 1.0;
 
       if (cycleProgress < prev) {
         resetTriggerStates();
       }
 
-      for (let i = 0; i < r1; i++) {
+      for (var i = 0; i < r1; i++) {
         if (cycleProgress >= (i / r1) && !playedHits1.has(i)) {
           playTone(440);
           playedHits1.add(i);
         }
       }
 
-      for (let j = 0; j < r2; j++) {
+      for (var j = 0; j < r2; j++) {
         if (cycleProgress >= (j / r2) && !playedHits2.has(j)) {
           playTone(660);
           playedHits2.add(j);
@@ -355,54 +355,11 @@
       requestAnimationFrame(loop);
     }
 
-    toggleBtn.addEventListener('click', () => {
-      // Trigger audio unlock on click
+    toggleBtn.addEventListener('click', function() {
       try {
         if (!audioCtx) {
-          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          var AudioContextClass = window.AudioContext || window.webkitAudioContext;
           if (AudioContextClass) audioCtx = new AudioContextClass();
         }
-        if (audioCtx && audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-      } catch (e) {}
-
-      isRunning = !isRunning;
-      if (isRunning) {
-        toggleBtn.textContent = 'Stop';
-        toggleBtn.classList.add('active');
-        lastTime = performance.now();
-        requestAnimationFrame(loop);
-      } else {
-        toggleBtn.textContent = 'Start';
-        toggleBtn.classList.remove('active');
-        cycleProgress = 0;
-        resetTriggerStates();
-        draw();
-      }
-    });
-
-    r1Select.addEventListener('change', () => {
-      r1 = parseInt(r1Select.value, 10);
-      resetTriggerStates();
-      if (!isRunning) draw();
-    });
-
-    r2Select.addEventListener('change', () => {
-      r2 = parseInt(r2Select.value, 10);
-      resetTriggerStates();
-      if (!isRunning) draw();
-    });
-
-    durSelect.addEventListener('change', () => {
-      cycleDuration = parseFloat(durSelect.value);
-    });
-
-    // Initial values & immediate draw
-    r1 = parseInt(r1Select.value, 10);
-    r2 = parseInt(r2Select.value, 10);
-    cycleDuration = parseFloat(durSelect.value);
-    draw();
-  </script>
-</body>
-</html>
+        if (audioCtx && audioCtx.
+    
