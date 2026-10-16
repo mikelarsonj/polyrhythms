@@ -2,119 +2,263 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Polyrhythm Metronome</title>
   <style>
-    :root {
-      --bg: #0b1120;
-      --card-bg: #1e293b;
-      --border: #334155;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --cyan: #06b6d4;
-      --amber: #f59e0b;
-      --red: #ef4444;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
-
     body {
-      background-color: var(--bg);
-      color: var(--text);
+      background-color: #0b1120;
+      color: #f8fafc;
+      font-family: sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 100vh;
-      padding: 16px 12px 32px 12px;
+      margin: 0;
+      padding: 16px 8px;
     }
-
-    header {
-      text-align: center;
-      margin-bottom: 14px;
-    }
-
     h1 {
-      font-size: 1.6rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      margin-bottom: 2px;
+      font-size: 1.5rem;
+      margin: 0 0 4px 0;
     }
-
-    .subtitle {
-      color: var(--muted);
+    p {
+      color: #94a3b8;
       font-size: 0.85rem;
+      margin: 0 0 16px 0;
     }
-
-    .controls-panel {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
+    .controls {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 12px 16px;
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
       gap: 12px;
-      max-width: 440px;
-      width: 100%;
+      align-items: center;
+      justify-content: center;
       margin-bottom: 16px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      max-width: 380px;
+      width: 100%;
+      box-sizing: border-box;
     }
-
-    .row {
+    .group {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 10px;
+      gap: 6px;
     }
-
-    .input-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
     label {
       font-size: 0.85rem;
-      color: var(--muted);
-      font-weight: 600;
+      color: #94a3b8;
+      font-weight: bold;
     }
-
     select {
       background: #0f172a;
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 7px 12px;
-      border-radius: 8px;
+      color: #fff;
+      border: 1px solid #334155;
+      padding: 6px 10px;
+      border-radius: 6px;
       font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
+      font-weight: bold;
       outline: none;
     }
-
-    select.lane1-select { border-color: var(--cyan); color: var(--cyan); }
-    select.lane2-select { border-color: var(--amber); color: var(--amber); }
-
-    .ratio-separator {
-      font-weight: 700;
-      font-size: 1.1rem;
-      color: var(--muted);
-    }
-
-    .btn {
+    #r1 { border-color: #06b6d4; color: #06b6d4; }
+    #r2 { border-color: #f59e0b; color: #f59e0b; }
+    button {
       background: #2563eb;
       color: #fff;
       border: none;
-      padding: 9px 20px;
-      border-radius: 8px;
+      padding: 8px 18px;
+      border-radius: 6px;
       font-size: 1rem;
-      font-weight: 600;
+      font-weight: bold;
       cursor: pointer;
-      min-width: 90px;
+    }
+    button.running {
+      background: #dc2626;
+    }
+    canvas {
+      background: #020617;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 360px;
+      aspect-ratio: 1 / 1;
+      display: block;
+    }
+  </style>
+</head>
+<body>
 
-    
+  <h1>Polyrhythm Metronome</h1>
+  <p>Percussive Visualizer</p>
+
+  <div class="controls">
+    <div class="group">
+      <label>Ratio:</label>
+      <select id="r1">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3" selected>3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+      </select>
+      <span style="font-weight:bold;color:#94a3b8">:</span>
+      <select id="r2">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4" selected>4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+      </select>
+    </div>
+
+    <div class="group">
+      <label>Cycle:</label>
+      <select id="dur">
+        <option value="1">1 s</option>
+        <option value="2" selected>2 s</option>
+        <option value="3">3 s</option>
+        <option value="4">4 s</option>
+        <option value="5">5 s</option>
+        <option value="6">6 s</option>
+        <option value="7">7 s</option>
+        <option value="8">8 s</option>
+      </select>
+    </div>
+
+    <button id="btn">Start</button>
+  </div>
+
+  <canvas id="cv" width="360" height="360"></canvas>
+
+  <script>
+    var audioCtx = null;
+
+    function getAudio() {
+      if (!audioCtx) {
+        var Cls = window.AudioContext || window.webkitAudioContext;
+        if (Cls) audioCtx = new Cls();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    // Woodblock hit (Lane 1)
+    function playWoodblock() {
+      var ac = getAudio();
+      if (!ac) return;
+      var t = ac.currentTime;
+
+      var osc = ac.createOscillator();
+      var gain = ac.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, t);
+      osc.frequency.exponentialRampToValueAtTime(260, t + 0.04);
+
+      gain.gain.setValueAtTime(0.7, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
+
+      osc.connect(gain);
+      gain.connect(ac.destination);
+      osc.start(t);
+      osc.stop(t + 0.045);
+    }
+
+    // High Clave click (Lane 2)
+    function playClave() {
+      var ac = getAudio();
+      if (!ac) return;
+      var t = ac.currentTime;
+
+      var osc = ac.createOscillator();
+      var gain = ac.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(2400, t);
+      osc.frequency.exponentialRampToValueAtTime(1400, t + 0.03);
+
+      gain.gain.setValueAtTime(0.6, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+
+      osc.connect(gain);
+      gain.connect(ac.destination);
+      osc.start(t);
+      osc.stop(t + 0.035);
+    }
+
+    var canvas = document.getElementById('cv');
+    var ctx = canvas.getContext('2d');
+    var btn = document.getElementById('btn');
+    var r1Sel = document.getElementById('r1');
+    var r2Sel = document.getElementById('r2');
+    var durSel = document.getElementById('dur');
+
+    var isRunning = false;
+    var r1 = 3;
+    var r2 = 4;
+    var cycleDuration = 2;
+
+    var cycleProgress = 0;
+    var lastTime = null;
+    var hit1 = {};
+    var hit2 = {};
+
+    var HIT_Y = 290;
+    var BAR_H = 10;
+
+    function draw() {
+      var w = canvas.width;
+      var h = canvas.height;
+      var mid = w / 2;
+      var lw = 120;
+
+      ctx.fillStyle = '#020617';
+      ctx.fillRect(0, 0, w, h);
+
+      // Center line
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(mid - 1, 0, 2, h);
+
+      // Hit line
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+      ctx.fillRect(10, HIT_Y - 6, w - 20, 12);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(10, HIT_Y - 1, w - 20, 2);
+
+      // Lane 1 (Cyan)
+      ctx.fillStyle = '#06b6d4';
+      for (var i = 0; i < r1; i++) {
+        var p1 = (cycleProgress - (i / r1)) % 1.0;
+        if (p1 < 0) p1 += 1.0;
+        ctx.fillRect(mid - lw - 10, (p1 * HIT_Y) - (BAR_H / 2), lw, BAR_H);
+      }
+
+      // Lane 2 (Amber)
+      ctx.fillStyle = '#f59e0b';
+      for (var j = 0; j < r2; j++) {
+        var p2 = (cycleProgress - (j / r2)) % 1.0;
+        if (p2 < 0) p2 += 1.0;
+        ctx.fillRect(mid + 10, (p2 * HIT_Y) - (BAR_H / 2), lw, BAR_H);
+      }
+    }
+
+    function loop(now) {
+      if (!isRunning) return;
+      var dt = (now - lastTime) / 1000;
+      lastTime = now;
+
+      var prev = cycleProgress;
+      cycleProgress = (cycleProgress + (dt / cycleDuration)) % 1.0;
+
+      if (cycleProgress < prev) {
+        hit1 = {};
+        hit2 = {};
+      }
+
+      for (var i = 0; i < r1; i++) {
+        if (cycleProgress >= (i / r1) && !hit1
