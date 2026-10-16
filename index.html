@@ -22,20 +22,20 @@
     p {
       color: #94a3b8;
       font-size: 0.85rem;
-      margin: 0 0 16px 0;
+      margin: 0 0 12px 0;
     }
     .controls {
       background: #1e293b;
       border: 1px solid #334155;
       border-radius: 10px;
-      padding: 12px 16px;
+      padding: 12px 14px;
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 10px;
       align-items: center;
       justify-content: center;
-      margin-bottom: 16px;
-      max-width: 380px;
+      margin-bottom: 12px;
+      max-width: 360px;
       width: 100%;
       box-sizing: border-box;
     }
@@ -53,11 +53,10 @@
       background: #0f172a;
       color: #fff;
       border: 1px solid #334155;
-      padding: 6px 10px;
+      padding: 6px 8px;
       border-radius: 6px;
       font-size: 1rem;
       font-weight: bold;
-      outline: none;
     }
     #r1 { border-color: #06b6d4; color: #06b6d4; }
     #r2 { border-color: #f59e0b; color: #f59e0b; }
@@ -74,13 +73,16 @@
     button.running {
       background: #dc2626;
     }
+    #status {
+      font-size: 0.8rem;
+      color: #38bdf8;
+      margin-bottom: 8px;
+      height: 16px;
+    }
     canvas {
       background: #020617;
-      border: 1px solid #334155;
-      border-radius: 10px;
-      width: 100%;
-      max-width: 360px;
-      aspect-ratio: 1 / 1;
+      border: 2px solid #334155;
+      border-radius: 8px;
       display: block;
     }
   </style>
@@ -88,7 +90,7 @@
 <body>
 
   <h1>Polyrhythm Metronome</h1>
-  <p>Percussive Visualizer</p>
+  <p>Percussive Visualizer (v6.0)</p>
 
   <div class="controls">
     <div class="group">
@@ -130,15 +132,16 @@
       </select>
     </div>
 
-    <button id="btn">Start</button>
+    <button id="btn" type="button">Start</button>
   </div>
 
-  <canvas id="cv" width="360" height="360"></canvas>
+  <div id="status">Ready</div>
+  <canvas id="cv" width="340" height="340"></canvas>
 
   <script>
     var audioCtx = null;
 
-    function getAudio() {
+    function initAudio() {
       if (!audioCtx) {
         var Cls = window.AudioContext || window.webkitAudioContext;
         if (Cls) audioCtx = new Cls();
@@ -146,49 +149,42 @@
       if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
-      return audioCtx;
     }
 
-    // Woodblock hit (Lane 1)
-    function playWoodblock() {
-      var ac = getAudio();
-      if (!ac) return;
-      var t = ac.currentTime;
-
-      var osc = ac.createOscillator();
-      var gain = ac.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(800, t);
-      osc.frequency.exponentialRampToValueAtTime(260, t + 0.04);
-
-      gain.gain.setValueAtTime(0.7, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
-
-      osc.connect(gain);
-      gain.connect(ac.destination);
-      osc.start(t);
-      osc.stop(t + 0.045);
+    function playLow() {
+      try {
+        if (!audioCtx) return;
+        var t = audioCtx.currentTime;
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(750, t);
+        osc.frequency.exponentialRampToValueAtTime(220, t + 0.04);
+        gain.gain.setValueAtTime(0.6, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.045);
+      } catch (e) {}
     }
 
-    // High Clave click (Lane 2)
-    function playClave() {
-      var ac = getAudio();
-      if (!ac) return;
-      var t = ac.currentTime;
-
-      var osc = ac.createOscillator();
-      var gain = ac.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(2400, t);
-      osc.frequency.exponentialRampToValueAtTime(1400, t + 0.03);
-
-      gain.gain.setValueAtTime(0.6, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
-
-      osc.connect(gain);
-      gain.connect(ac.destination);
-      osc.start(t);
-      osc.stop(t + 0.035);
+    function playHigh() {
+      try {
+        if (!audioCtx) return;
+        var t = audioCtx.currentTime;
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(2200, t);
+        osc.frequency.exponentialRampToValueAtTime(1200, t + 0.03);
+        gain.gain.setValueAtTime(0.5, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.035);
+      } catch (e) {}
     }
 
     var canvas = document.getElementById('cv');
@@ -197,6 +193,7 @@
     var r1Sel = document.getElementById('r1');
     var r2Sel = document.getElementById('r2');
     var durSel = document.getElementById('dur');
+    var statusEl = document.getElementById('status');
 
     var isRunning = false;
     var r1 = 3;
@@ -208,25 +205,26 @@
     var hit1 = {};
     var hit2 = {};
 
-    var HIT_Y = 290;
-    var BAR_H = 10;
+    var HIT_Y = 270;
+    var BAR_H = 12;
 
-    function draw() {
+    function render() {
       var w = canvas.width;
       var h = canvas.height;
       var mid = w / 2;
-      var lw = 120;
+      var lw = 110;
 
+      // Fill background
       ctx.fillStyle = '#020617';
       ctx.fillRect(0, 0, w, h);
 
-      // Center line
+      // Divider line
       ctx.fillStyle = '#334155';
       ctx.fillRect(mid - 1, 0, 2, h);
 
-      // Hit line
-      ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
-      ctx.fillRect(10, HIT_Y - 6, w - 20, 12);
+      // Strike Target
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
+      ctx.fillRect(10, HIT_Y - 8, w - 20, 16);
       ctx.fillStyle = '#ef4444';
       ctx.fillRect(10, HIT_Y - 1, w - 20, 2);
 
@@ -249,6 +247,7 @@
 
     function loop(now) {
       if (!isRunning) return;
+
       var dt = (now - lastTime) / 1000;
       lastTime = now;
 
@@ -261,4 +260,61 @@
       }
 
       for (var i = 0; i < r1; i++) {
-        if (cycleProgress >= (i / r1) && !hit1
+        if (cycleProgress >= (i / r1) && !hit1[i]) {
+          playLow();
+          hit1[i] = true;
+        }
+      }
+
+      for (var j = 0; j < r2; j++) {
+        if (cycleProgress >= (j / r2) && !hit2[j]) {
+          playHigh();
+          hit2[j] = true;
+        }
+      }
+
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    btn.addEventListener('click', function() {
+      initAudio();
+      isRunning = !isRunning;
+      if (isRunning) {
+        btn.textContent = 'Stop';
+        btn.className = 'running';
+        statusEl.textContent = 'Playing ' + r1 + ':' + r2 + ' over ' + cycleDuration + 's';
+        lastTime = performance.now();
+        requestAnimationFrame(loop);
+      } else {
+        btn.textContent = 'Start';
+        btn.className = '';
+        statusEl.textContent = 'Stopped';
+        cycleProgress = 0;
+        hit1 = {};
+        hit2 = {};
+        render();
+      }
+    });
+
+    r1Sel.addEventListener('change', function() {
+      r1 = parseInt(r1Sel.value, 10);
+      hit1 = {};
+      if (!isRunning) render();
+    });
+
+    r2Sel.addEventListener('change', function() {
+      r2 = parseInt(r2Sel.value, 10);
+      hit2 = {};
+      if (!isRunning) render();
+    });
+
+    durSel.addEventListener('change', function() {
+      cycleDuration = parseInt(durSel.value, 10);
+    });
+
+    // Run first render immediately
+    render();
+  </script>
+</body>
+</html>
